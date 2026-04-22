@@ -4,6 +4,10 @@ public interface DataManipulation {
     void openDatasource();
     void closeDatasource();
 
+    String getPassword(String mobile_phone);
+    int getPermission(String mobile_phone);
+    int getId(String mobile_phone);
+
     // Task 4.1: 生成机票
     int generateTickets(String startDate, String endDate);
 
@@ -14,8 +18,10 @@ public interface DataManipulation {
     boolean bookTicket(int passengerId, int ticketId, String cabinClass);
 
     // Task 4.4: 订单管理
-    void searchOrders(int passengerId);
-    boolean deleteOrder(int orderId);
+    void searchOrders(int passengerId, int permission);
+    boolean deleteOrder(int orderId, int permission, int passengerId);
+
+    void updatePassword(int id, String password);
 
     // 兼容之前作业的方法（留空即可）
     int addOneMovie(String str);

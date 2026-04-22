@@ -3,11 +3,12 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 public class DatabaseManipulation implements DataManipulation {
+    private int developer = 1;
     private Connection con = null;
     private String host = "localhost";
-    private String dbname = "proj1";
-    private String user = "postgres";
-    private String pwd = "258066"; // <--- 改成你设置的那个密码
+    private String dbname = developer==1 ? "project" : "proj1";
+    private String user = developer==1 ? "checker" : "postgres";
+    private String pwd = developer==1 ? "123455" : "258066";
     private String port = "5432";
 
     @Override
@@ -26,6 +27,51 @@ public class DatabaseManipulation implements DataManipulation {
     @Override
     public void closeDatasource() {
         try { if (con != null) con.close(); } catch (SQLException e) { e.printStackTrace(); }
+    }
+
+    @Override
+    public String getPassword(String mobile_phone){
+        String sql = "SELECT password FROM passenger where mobile_phone = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1,mobile_phone);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next()){
+                return rs.getString(1);
+            }
+            else return "#";
+        } catch (SQLException e) {
+            return "$";
+        }
+    }
+
+    @Override
+    public int getPermission(String mobile_phone){
+        String sql = "SELECT permission FROM passenger where mobile_phone = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1,mobile_phone);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next()){
+                return rs.getInt(1);
+            }
+            else return 0;
+        } catch (SQLException e) {
+            return 0;
+        }
+    }
+
+    @Override
+    public int getId(String mobile_phone){
+        String sql = "SELECT id FROM passenger where mobile_phone = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1,mobile_phone);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next()){
+                return rs.getInt(1);
+            }
+            else return 0;
+        } catch (SQLException e) {
+            return 0;
+        }
     }
 
     @Override
@@ -118,26 +164,61 @@ public class DatabaseManipulation implements DataManipulation {
     }
 
     @Override
-    public void searchOrders(int passengerId) {
+    public void searchOrders(int passengerId, int permission) {
         String sql = "SELECT o.order_id, f.flight_number, t.flight_date, o.cabin_class FROM ticket_order o " +
-                "JOIN ticket t ON o.ticket_id = t.ticket_id JOIN flight f ON t.flight_id = f.id WHERE o.passenger_id = ?";
+                "JOIN ticket t ON o.ticket_id = t.ticket_id JOIN flight f ON t.flight_id = f.id";
+        if(permission<=1){
+            sql += " WHERE o.passenger_id = ?";
+        }
         try (PreparedStatement pstmt = con.prepareStatement(sql)) {
-            pstmt.setInt(1, passengerId);
+            if(permission<=1)pstmt.setInt(1, passengerId);
             ResultSet rs = pstmt.executeQuery();
+            int cnt = 0;
             while (rs.next()) {
                 System.out.printf("Order ID: %d | Flight: %s | Date: %s | Class: %s\n",
                         rs.getInt(1), rs.getString(2), rs.getDate(3), rs.getString(4));
+                cnt++;
             }
+            if(cnt==0) System.out.println("You have no ticket order");
         } catch (SQLException e) { e.printStackTrace(); }
     }
 
     @Override
-    public boolean deleteOrder(int orderId) {
+    public boolean deleteOrder(int orderId, int permission, int passengerId) {
+        String s = "SELECT passenger_id FROM ticket_order WHERE order_id = ?";
+        try (PreparedStatement ps = con.prepareStatement(s)) {
+            ps.setInt(1, orderId);
+            ResultSet rs = ps.executeQuery();
+            if(!rs.next()){
+                System.out.println("No such order exist");
+                return false;
+            }
+            if(passengerId!=rs.getInt(1)&&permission<=1){
+                System.out.println("\nYou have no permission to delete order not belongs to you");
+                return false;
+            }
+        } catch (SQLException e) { e.printStackTrace(); return false; }
         String sql = "DELETE FROM ticket_order WHERE order_id = ?";
         try (PreparedStatement pstmt = con.prepareStatement(sql)) {
             pstmt.setInt(1, orderId);
-            return pstmt.executeUpdate() > 0;
+            int ret = pstmt.executeUpdate();
+            if(ret>0) System.out.println("Delete succeed!");
+            return ret > 0;
         } catch (SQLException e) { e.printStackTrace(); return false; }
+    }
+
+    public void updatePassword(int id, String password) {
+        String sql = "UPDATE passenger SET password = ? WHERE id = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, password);
+            ps.setInt(2, id);
+            int rows = ps.executeUpdate();
+            if (rows == 0) {
+                System.out.println("未找到 id 为 " + id + " 的乘客");
+            }
+        } catch (SQLException e) {
+            System.out.println("更新密码失败");
+        }
     }
 
     // 电影相关方法实现（留空以兼容之前的接口）
