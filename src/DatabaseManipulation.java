@@ -3,7 +3,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 public class DatabaseManipulation implements DataManipulation {
-    private int developer = 1;
+    private int developer = 0;
     private Connection con = null;
     private String host = "localhost";
     private String dbname = developer==1 ? "project" : "proj1";
