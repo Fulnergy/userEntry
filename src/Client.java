@@ -108,12 +108,20 @@ public class Client {
                 System.out.println("Optional: Airline DepTime ArrTime (type 'none' to skip)");
                 dm.searchTickets(dep, arr, date, sc.next(), sc.next(), sc.next());
             } else if (input.equals("3")) {
+                if(permission==0){
+                    System.out.println("Visitor cannot access order");
+                    continue;
+                }
                 System.out.println("1. Search Orders  2. Book Ticket  3. Delete Order");
                 int sub = sc.nextInt();
                 if (sub == 1) { dm.searchOrders(id,permission); }
                 else if (sub == 2) { System.out.print("TicketID Class(Economy/Business): "); dm.bookTicket(id, sc.nextInt(), sc.next()); }
                 else if (sub == 3) { System.out.print("Order ID: "); dm.deleteOrder(sc.nextInt(),permission,id); }
             } else if (input.equals("4")) {
+                if(permission==0){
+                    System.out.println("Visitor cannot reset password");
+                    continue;
+                }
                 while (true){
                     System.out.println("Please set your password");
                     System.out.println("--Your password must be consist of alphabets and digits");
