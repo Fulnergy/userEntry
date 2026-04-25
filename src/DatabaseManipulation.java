@@ -6,7 +6,6 @@ import java.util.List;
 
 public class DatabaseManipulation implements DataManipulation {
     private Connection con = null;
-
     private int developer = 0;
     private String dbname = developer==1 ? "project" : "proj1";
     private String user = developer==1 ? "checker" : "postgres";
@@ -17,7 +16,7 @@ public class DatabaseManipulation implements DataManipulation {
             Class.forName("org.postgresql.Driver");
             String url = "jdbc:postgresql://localhost:5432/" + dbname;
             con = DriverManager.getConnection(url, user, pwd);
-            System.out.println("数据库连接成功");
+            System.out.println("数据库已连接");
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);
@@ -30,33 +29,26 @@ public class DatabaseManipulation implements DataManipulation {
     }
 
     @Override
-    public String getPassword(String mobile_phone){
+    public String getPassword(String mobile_phone) {
         String sql = "SELECT password FROM passenger WHERE mobile_phone = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setString(1, mobile_phone);
             ResultSet rs = ps.executeQuery();
-            return rs.next() ? rs.getString(1) : "#";
+            if (rs.next()) {
+                String p = rs.getString(1);
+                return (p == null) ? "" : p; // 处理初始密码为空的情况
+            } else return "#"; // 未注册
         } catch (SQLException e) { return "$"; }
     }
 
     @Override
-    public int getPermission(String mobile_phone){
-        String sql = "SELECT permission FROM passenger WHERE mobile_phone = ?";
+    public void updatePassword(int id, String password) {
+        String sql = "UPDATE passenger SET password = ? WHERE id = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, mobile_phone);
-            ResultSet rs = ps.executeQuery();
-            return rs.next() ? rs.getInt(1) : 0;
-        } catch (SQLException e) { return 0; }
-    }
-
-    @Override
-    public int getId(String mobile_phone){
-        String sql = "SELECT id FROM passenger WHERE mobile_phone = ?";
-        try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, mobile_phone);
-            ResultSet rs = ps.executeQuery();
-            return rs.next() ? rs.getInt(1) : 0;
-        } catch (SQLException e) { return 0; }
+            ps.setString(1, password);
+            ps.setInt(2, id);
+            ps.executeUpdate();
+        } catch (SQLException e) { e.printStackTrace(); }
     }
 
     @Override
@@ -90,10 +82,15 @@ public class DatabaseManipulation implements DataManipulation {
                         "JOIN airline al ON f.airline_id = al.id " +
                         "WHERE c_src.city_name = ? AND c_dest.city_name = ? AND t.flight_date = ?"
         );
-        if (airline != null && !airline.equalsIgnoreCase("none")) sb.append(" AND al.airline_name = '").append(airline).append("'");
+        // 动态添加选填条件
+        if (airline != null && !airline.equalsIgnoreCase("none") && !airline.isEmpty())
+            sb.append(" AND al.airline_name = '").append(airline).append("'");
+        if (depTime != null && !depTime.equalsIgnoreCase("none") && !depTime.isEmpty())
+            sb.append(" AND f.scheduled_departure_time >= '").append(depTime).append("'");
 
         try (PreparedStatement pstmt = con.prepareStatement(sb.toString())) {
-            pstmt.setString(1, depCity); pstmt.setString(2, arrCity);
+            pstmt.setString(1, depCity);
+            pstmt.setString(2, arrCity);
             pstmt.setDate(3, Date.valueOf(date.replace('.', '-')));
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
@@ -106,7 +103,7 @@ public class DatabaseManipulation implements DataManipulation {
     @Override
     public boolean bookTicket(int passengerId, int ticketId, String cabinClass) {
         try {
-            con.setAutoCommit(false);
+            con.setAutoCommit(false); // 必须使用事务
             String col = cabinClass.equalsIgnoreCase("Economy") ? "economy_remain" : "business_remain";
             String updateSql = "UPDATE ticket SET " + col + " = " + col + " - 1 WHERE ticket_id = ? AND " + col + " > 0";
             try (PreparedStatement ps1 = con.prepareStatement(updateSql)) {
@@ -152,14 +149,26 @@ public class DatabaseManipulation implements DataManipulation {
     }
 
     @Override
-    public void updatePassword(int id, String password) {
-        String sql = "UPDATE passenger SET password = ? WHERE id = ?";
+    public int getPermission(String mobile_phone) {
+        String sql = "SELECT permission FROM passenger WHERE mobile_phone = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
-            ps.setString(1, password); ps.setInt(2, id); ps.executeUpdate();
-        } catch (SQLException e) { e.printStackTrace(); }
+            ps.setString(1, mobile_phone);
+            ResultSet rs = ps.executeQuery();
+            return rs.next() ? rs.getInt(1) : 0;
+        } catch (SQLException e) { return 0; }
     }
 
-    // 兼容方法留空...
+    @Override
+    public int getId(String mobile_phone) {
+        String sql = "SELECT id FROM passenger WHERE mobile_phone = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setString(1, mobile_phone);
+            ResultSet rs = ps.executeQuery();
+            return rs.next() ? rs.getInt(1) : -1;
+        } catch (SQLException e) { return -1; }
+    }
+
+    // 兼容之前的方法
     public int addOneMovie(String s) {return 0;}
     public String allContinentNames() {return null;}
     public String continentsWithCountryCount() {return null;}
