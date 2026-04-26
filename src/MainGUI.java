@@ -30,7 +30,7 @@ public class MainGUI extends JFrame {
     private void initLoginPanel() {
         JPanel p = new JPanel(new GridBagLayout());
         GridBagConstraints g = new GridBagConstraints(); g.insets = new Insets(10,10,10,10);
-        JTextField pf = new JTextField("13800138000", 15); JPasswordField psf = new JPasswordField(15);
+        JTextField pf = new JTextField("", 15); JPasswordField psf = new JPasswordField(15);
         JButton btn = new JButton(" 登 录 "); JButton vBtn = new JButton("游客模式");
         g.gridx=0; g.gridy=0; p.add(new JLabel("手机号:"), g); g.gridx=1; p.add(pf, g);
         g.gridx=0; g.gridy=1; p.add(new JLabel("密  码:"), g); g.gridx=1; p.add(psf, g);
